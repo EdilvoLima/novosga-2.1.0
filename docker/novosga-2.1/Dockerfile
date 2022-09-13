@@ -8,7 +8,8 @@ ENV NOVOSGA_FILE=novosga.tar.gz \
     NOVOSGA_DIR=/var/www/html \
     NOVOSGA_URL=https://github.com/EdilvoLima/novosga-2.1.0/archive/refs/tags/${NOVOSGA_VER}.tar.gz \
     APP_ENV=prod \
-    DATABASE_URL=mysql://127.0.0.1:3306/novosga?charset=utf8mb4&serverVersion=5.7
+    DATABASE_URL=mysql://127.0.0.1:3306/mysql?charset=utf8mb4&serverVersion=5.7 \
+    LANGUAGE=pt_BR
 
 RUN set -xe \
     && mkdir -p $NOVOSGA_DIR && cd $NOVOSGA_DIR \
@@ -17,10 +18,18 @@ RUN set -xe \
     && echo "${NOVOSGA_MD5}  ${NOVOSGA_FILE}" | md5sum -c \
     && tar -xz --strip-components=1 -f ${NOVOSGA_FILE} \
     && rm ${NOVOSGA_FILE} \
-    && composer update -W \
-    && composer install --no-dev -o
+    && composer create-project "novosga/novosga:^2.1" novosga2  --ignore-platform-reqs\
+    && export APP_ENV=$APP_ENV \
+    && export LANGUAGE=$LANGUAGE \
+    && export DATABASE_URL=${DATABASE_URL} \
 
-FROM php:7.1-apache
+    && composer update -W \
+    && bin/console novosga:install
+
+#   && composer update -W \
+#   && composer install --no-dev -o
+
+FROM php:7.4-apache
 
 RUN set -xe \
     && apt-get update \
@@ -57,7 +66,7 @@ RUN set -xe \
 
 #Set the default parameters
 ENV APP_ENV=prod \
-    LANGUAGE=pt_BR \
+#    LANGUAGE=pt_BR \
     NOVOSGA_ADMIN_USERNAME="admin" \
     NOVOSGA_ADMIN_PASSWORD="123456" \
     NOVOSGA_ADMIN_FIRSTNAME="Administrator" \
